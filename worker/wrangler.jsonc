@@ -1,0 +1,11 @@
+{
+  "name": "config-sync",
+  "main": "worker.js",
+  "compatibility_date": "2025-12-03",
+  "vars": {
+    // 在 Cloudflare Dashboard 中设置以下环境变量（不要在这里填写）
+    // USER_PASSWORD: "你的同步密码"
+    // GITHUB_TOKEN: "ghp_xxx"
+    // GITHUB_REPO: "username/repo-name"
+  }
+}
