@@ -9,7 +9,10 @@ const STORAGE_KEYS = {
   ALPHA_ORDER: 'pwa_alphaOrder',
   MEME_ORDER: 'pwa_memeOrder',
   STOCK_ORDER: 'pwa_stockOrder',
-  METAL_APPCODE: 'pwa_metalAppCode'
+  METAL_APPCODE: 'pwa_metalAppCode',
+  SYNC_URL: 'pwa_syncUrl',
+  SYNC_PASSWORD: 'pwa_syncPassword',
+  LAST_SYNC: 'pwa_lastSync'
 };
 
 // ==================== Default Data ====================
@@ -103,6 +106,12 @@ function setupEventListeners() {
   document.getElementById('exportBtn').addEventListener('click', exportConfig);
   document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
   document.getElementById('importFile').addEventListener('change', importConfig);
+
+  // Cloud Sync
+  document.getElementById('saveSyncBtn').addEventListener('click', saveSyncConfig);
+  document.getElementById('pullCloudBtn').addEventListener('click', pullFromCloud);
+  document.getElementById('pushCloudBtn').addEventListener('click', pushToCloud);
+  loadSyncConfig();
 
   // Close modals on backdrop click
   document.getElementById('chartModal').addEventListener('click', (e) => {
@@ -934,6 +943,161 @@ function importConfig(e) {
   };
   reader.readAsText(file);
   e.target.value = '';
+}
+
+// ==================== Cloud Sync ====================
+function saveSyncConfig() {
+  const url = document.getElementById('syncUrl').value.trim();
+  const pwd = document.getElementById('syncPassword').value.trim();
+  const status = document.getElementById('syncStatus');
+
+  if (!url || !pwd) {
+    status.innerHTML = '<span style="color:#f44336;">请填写同步地址和密码</span>';
+    return;
+  }
+
+  localStorage.setItem(STORAGE_KEYS.SYNC_URL, url);
+  localStorage.setItem(STORAGE_KEYS.SYNC_PASSWORD, pwd);
+  status.innerHTML = '<span style="color:#4CAF50;">✅ 配置已保存</span>';
+  showToast('同步配置已保存');
+}
+
+function loadSyncConfig() {
+  const url = localStorage.getItem(STORAGE_KEYS.SYNC_URL) || '';
+  const pwd = localStorage.getItem(STORAGE_KEYS.SYNC_PASSWORD) || '';
+  const lastSync = localStorage.getItem(STORAGE_KEYS.LAST_SYNC);
+  const status = document.getElementById('syncStatus');
+
+  document.getElementById('syncUrl').value = url;
+  document.getElementById('syncPassword').value = pwd;
+
+  if (url && pwd) {
+    let statusText = '<span style="color:#4CAF50;">✅ 已配置</span>';
+    if (lastSync) {
+      statusText += ` | 上次同步: ${new Date(lastSync).toLocaleString('zh-CN')}`;
+    }
+    status.innerHTML = statusText;
+  } else {
+    status.innerHTML = '<span style="color:#ff9800;">⚠️ 未配置</span>';
+  }
+}
+
+async function pullFromCloud() {
+  const url = localStorage.getItem(STORAGE_KEYS.SYNC_URL);
+  const pwd = localStorage.getItem(STORAGE_KEYS.SYNC_PASSWORD);
+  const status = document.getElementById('syncStatus');
+
+  if (!url || !pwd) {
+    showToast('请先配置同步地址和密码');
+    return;
+  }
+
+  status.innerHTML = '<span style="color:#2196F3;">⏳ 正在拉取...</span>';
+
+  try {
+    const response = await fetch(`${url}/sync?pwd=${encodeURIComponent(pwd)}`);
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || '拉取失败');
+    }
+
+    if (!result.data || !result.data.data) {
+      showToast('云端暂无配置');
+      status.innerHTML = '<span style="color:#ff9800;">云端暂无配置</span>';
+      return;
+    }
+
+    const config = result.data;
+
+    // 应用配置 - 兼容两种格式
+    const cryptoData = config.data.crypto || config.data.customCoins || [];
+    if (cryptoData.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.CRYPTO, JSON.stringify(cryptoData));
+    }
+
+    const alphaData = config.data.alpha || config.data.customAlpha || [];
+    if (alphaData.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.ALPHA, JSON.stringify(alphaData));
+    }
+
+    const memeData = config.data.meme || config.data.customMeme || [];
+    if (memeData.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.MEME, JSON.stringify(memeData));
+    }
+
+    const stockData = config.data.stock || config.data.customStocks || [];
+    if (stockData.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.STOCK, JSON.stringify(stockData));
+    }
+
+    if (config.data.tabVisibility) {
+      localStorage.setItem(STORAGE_KEYS.TAB_VISIBILITY, JSON.stringify(config.data.tabVisibility));
+    }
+
+    const appCode = config.data.metalApiAppCode || config.data.metalAppCode || '';
+    if (appCode) {
+      localStorage.setItem(STORAGE_KEYS.METAL_APPCODE, appCode);
+    }
+
+    localStorage.setItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
+
+    showToast('拉取成功，刷新中...');
+    setTimeout(() => location.reload(), 1000);
+
+  } catch (error) {
+    status.innerHTML = `<span style="color:#f44336;">❌ ${error.message}</span>`;
+    showToast('拉取失败: ' + error.message);
+  }
+}
+
+async function pushToCloud() {
+  const url = localStorage.getItem(STORAGE_KEYS.SYNC_URL);
+  const pwd = localStorage.getItem(STORAGE_KEYS.SYNC_PASSWORD);
+  const status = document.getElementById('syncStatus');
+
+  if (!url || !pwd) {
+    showToast('请先配置同步地址和密码');
+    return;
+  }
+
+  status.innerHTML = '<span style="color:#2196F3;">⏳ 正在推送...</span>';
+
+  try {
+    // 构建配置数据
+    const config = {
+      version: '1.2',
+      exportTime: new Date().toISOString(),
+      data: {
+        customCoins: JSON.parse(localStorage.getItem(STORAGE_KEYS.CRYPTO) || '[]'),
+        customAlpha: JSON.parse(localStorage.getItem(STORAGE_KEYS.ALPHA) || '[]'),
+        customMeme: JSON.parse(localStorage.getItem(STORAGE_KEYS.MEME) || '[]'),
+        customStocks: JSON.parse(localStorage.getItem(STORAGE_KEYS.STOCK) || '[]'),
+        tabVisibility: JSON.parse(localStorage.getItem(STORAGE_KEYS.TAB_VISIBILITY) || '{}'),
+        metalApiAppCode: localStorage.getItem(STORAGE_KEYS.METAL_APPCODE) || ''
+      }
+    };
+
+    const response = await fetch(`${url}/sync?pwd=${encodeURIComponent(pwd)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || '推送失败');
+    }
+
+    localStorage.setItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
+    status.innerHTML = `<span style="color:#4CAF50;">✅ 推送成功</span> | ${new Date().toLocaleString('zh-CN')}`;
+    showToast('推送成功');
+
+  } catch (error) {
+    status.innerHTML = `<span style="color:#f44336;">❌ ${error.message}</span>`;
+    showToast('推送失败: ' + error.message);
+  }
 }
 
 // ==================== Utils ====================

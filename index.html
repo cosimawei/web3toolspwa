@@ -163,9 +163,31 @@
             <div id="appCodeStatus" style="font-size:12px;margin-top:8px;"></div>
           </div>
 
+          <!-- Cloud Sync -->
+          <div class="settings-section">
+            <h3>☁️ 云端同步</h3>
+            <div class="form-row">
+              <input type="password" id="syncPassword" placeholder="同步密码">
+            </div>
+            <div class="form-row">
+              <input type="text" id="syncUrl" placeholder="同步地址 https://xxx.workers.dev">
+            </div>
+            <div class="form-row">
+              <button id="saveSyncBtn" class="add-btn">保存配置</button>
+            </div>
+            <div id="syncStatus" style="font-size:12px;margin:8px 0;"></div>
+            <div class="form-row">
+              <button id="pullCloudBtn" class="action-btn">⬇️ 拉取云端</button>
+              <button id="pushCloudBtn" class="action-btn">⬆️ 推送云端</button>
+            </div>
+            <p style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:8px;">
+              ⚠️ 拉取会覆盖本地，推送会覆盖云端
+            </p>
+          </div>
+
           <!-- Backup -->
           <div class="settings-section">
-            <h3>配置备份</h3>
+            <h3>💾 本地备份</h3>
             <div class="form-row">
               <button id="exportBtn" class="action-btn">📤 导出</button>
               <button id="importBtn" class="action-btn">📥 导入</button>
