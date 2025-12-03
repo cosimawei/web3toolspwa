@@ -767,11 +767,41 @@ function importConfig(e) {
       const config = JSON.parse(ev.target.result);
       if (!config.data) throw new Error('Invalid format');
 
-      if (config.data.crypto) localStorage.setItem(STORAGE_KEYS.CRYPTO, JSON.stringify(config.data.crypto));
-      if (config.data.alpha) localStorage.setItem(STORAGE_KEYS.ALPHA, JSON.stringify(config.data.alpha));
-      if (config.data.meme) localStorage.setItem(STORAGE_KEYS.MEME, JSON.stringify(config.data.meme));
-      if (config.data.stock) localStorage.setItem(STORAGE_KEYS.STOCK, JSON.stringify(config.data.stock));
-      if (config.data.tabVisibility) localStorage.setItem(STORAGE_KEYS.TAB_VISIBILITY, JSON.stringify(config.data.tabVisibility));
+      // 兼容Chrome插件导出格式
+      // Chrome插件使用: customCoins, customAlpha, customMeme, customStocks
+      // PWA使用: crypto, alpha, meme, stock
+
+      // 处理虚拟币 (Chrome插件的customCoins需要过滤掉alpha类型)
+      let cryptoData = config.data.crypto || config.data.customCoins || [];
+      if (config.data.customCoins) {
+        cryptoData = config.data.customCoins.filter(c => c.source !== 'binance_alpha');
+      }
+      if (cryptoData.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.CRYPTO, JSON.stringify(cryptoData));
+      }
+
+      // 处理Alpha代币
+      const alphaData = config.data.alpha || config.data.customAlpha || [];
+      if (alphaData.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.ALPHA, JSON.stringify(alphaData));
+      }
+
+      // 处理MEME币
+      const memeData = config.data.meme || config.data.customMeme || [];
+      if (memeData.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.MEME, JSON.stringify(memeData));
+      }
+
+      // 处理股票
+      const stockData = config.data.stock || config.data.customStocks || [];
+      if (stockData.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.STOCK, JSON.stringify(stockData));
+      }
+
+      // 处理页签显示设置
+      if (config.data.tabVisibility) {
+        localStorage.setItem(STORAGE_KEYS.TAB_VISIBILITY, JSON.stringify(config.data.tabVisibility));
+      }
 
       showToast('导入成功，刷新中...');
       setTimeout(() => location.reload(), 1000);
