@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1e3c72">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="资产追踪">
+  <meta name="description" content="实时追踪虚拟币、股市、贵金属价格">
+
+  <title>多资产价格追踪</title>
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/icon32.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <h1>多资产追踪</h1>
+      <div class="controls">
+        <button id="tradingviewBtn" class="icon-btn" title="TradingView">📈</button>
+        <button id="settingsBtn" class="icon-btn" title="设置">⚙️</button>
+        <button id="refreshBtn" class="icon-btn" title="刷新">🔄</button>
+      </div>
+    </header>
+
+    <!-- Tabs -->
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="crypto">🪙 虚拟币</button>
+      <button class="tab-btn" data-tab="alpha">🅰️ Alpha</button>
+      <button class="tab-btn" data-tab="meme">🐸 MEME</button>
+      <button class="tab-btn" data-tab="stock">📈 股市</button>
+      <button class="tab-btn" data-tab="metal">🥇 贵金属</button>
+    </nav>
+
+    <!-- Panels -->
+    <main class="main-content">
+      <div class="tab-panel active" id="panel-crypto">
+        <div class="coins-grid" id="crypto-grid"></div>
+      </div>
+      <div class="tab-panel" id="panel-alpha">
+        <div class="coins-grid" id="alpha-grid"></div>
+      </div>
+      <div class="tab-panel" id="panel-meme">
+        <div class="coins-grid" id="meme-grid"></div>
+      </div>
+      <div class="tab-panel" id="panel-stock">
+        <div class="coins-grid" id="stock-grid"></div>
+      </div>
+      <div class="tab-panel" id="panel-metal">
+        <div class="coins-grid" id="metal-grid"></div>
+      </div>
+    </main>
+
+    <!-- Chart Modal -->
+    <div class="chart-modal" id="chartModal">
+      <div class="chart-modal-content">
+        <div class="chart-header">
+          <span id="chartTitle">BTC/USDT</span>
+          <button class="close-btn" id="closeChart">✕</button>
+        </div>
+        <div class="chart-container" id="chartContainer"></div>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="settings-modal" id="settingsModal">
+      <div class="settings-content">
+        <div class="settings-header">
+          <h2>设置</h2>
+          <button class="close-btn" id="closeSettings">✕</button>
+        </div>
+        <div class="settings-body">
+          <!-- Tab Visibility -->
+          <div class="settings-section">
+            <h3>页签显示</h3>
+            <div class="checkbox-group">
+              <label><input type="checkbox" id="showCrypto" checked> 🪙 虚拟币</label>
+              <label><input type="checkbox" id="showAlpha" checked> 🅰️ Alpha</label>
+              <label><input type="checkbox" id="showMeme" checked> 🐸 MEME</label>
+              <label><input type="checkbox" id="showStock" checked> 📈 股市</label>
+              <label><input type="checkbox" id="showMetal" checked> 🥇 贵金属</label>
+            </div>
+          </div>
+
+          <!-- Add Crypto -->
+          <div class="settings-section">
+            <h3>添加虚拟币</h3>
+            <div class="form-row">
+              <select id="cryptoExchange">
+                <option value="binance">Binance</option>
+                <option value="okx">OKX</option>
+                <option value="bitget">Bitget</option>
+                <option value="mexc">MEXC</option>
+              </select>
+              <input type="text" id="cryptoSymbol" placeholder="代币符号 如:DOGE">
+              <button id="addCryptoBtn" class="add-btn">添加</button>
+            </div>
+            <div class="list-container" id="cryptoList"></div>
+          </div>
+
+          <!-- Add Alpha -->
+          <div class="settings-section">
+            <h3>添加Alpha代币</h3>
+            <div class="form-row">
+              <input type="text" id="alphaSymbol" placeholder="代币符号">
+              <input type="text" id="alphaNote" placeholder="备注(可选)">
+              <button id="addAlphaBtn" class="add-btn">添加</button>
+            </div>
+            <div class="list-container" id="alphaList"></div>
+          </div>
+
+          <!-- Add MEME -->
+          <div class="settings-section">
+            <h3>添加MEME币</h3>
+            <div class="form-row">
+              <select id="memeNetwork">
+                <option value="bsc">BSC</option>
+                <option value="eth">ETH</option>
+                <option value="sol">SOL</option>
+                <option value="base">Base</option>
+              </select>
+              <input type="text" id="memeName" placeholder="名称">
+            </div>
+            <div class="form-row">
+              <input type="text" id="memeContract" placeholder="合约地址">
+              <button id="addMemeBtn" class="add-btn">添加</button>
+            </div>
+            <div class="list-container" id="memeList"></div>
+          </div>
+
+          <!-- Add Stock -->
+          <div class="settings-section">
+            <h3>添加股票</h3>
+            <div class="form-row">
+              <select id="stockMarket">
+                <option value="cn">🇨🇳 A股</option>
+                <option value="hk">🇭🇰 港股</option>
+                <option value="us">🇺🇸 美股</option>
+              </select>
+              <input type="text" id="stockCode" placeholder="股票代码">
+              <button id="addStockBtn" class="add-btn">添加</button>
+            </div>
+            <div class="list-container" id="stockList"></div>
+          </div>
+
+          <!-- Backup -->
+          <div class="settings-section">
+            <h3>配置备份</h3>
+            <div class="form-row">
+              <button id="exportBtn" class="action-btn">📤 导出</button>
+              <button id="importBtn" class="action-btn">📥 导入</button>
+              <input type="file" id="importFile" accept=".json" style="display:none">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
