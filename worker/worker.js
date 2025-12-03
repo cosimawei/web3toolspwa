@@ -123,7 +123,9 @@ async function getConfig(env) {
 
   const data = await response.json();
   const content = atob(data.content);
-  return JSON.parse(content);
+  // 修复UTF-8解码
+  const decodedContent = decodeURIComponent(escape(content));
+  return JSON.parse(decodedContent);
 }
 
 // 保存配置到 GitHub
