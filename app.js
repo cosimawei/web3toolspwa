@@ -8,7 +8,8 @@ const STORAGE_KEYS = {
   CRYPTO_ORDER: 'pwa_cryptoOrder',
   ALPHA_ORDER: 'pwa_alphaOrder',
   MEME_ORDER: 'pwa_memeOrder',
-  STOCK_ORDER: 'pwa_stockOrder'
+  STOCK_ORDER: 'pwa_stockOrder',
+  METAL_APPCODE: 'pwa_metalAppCode'
 };
 
 // ==================== Default Data ====================
@@ -87,6 +88,10 @@ function setupEventListeners() {
   document.getElementById('addAlphaBtn').addEventListener('click', addAlpha);
   document.getElementById('addMemeBtn').addEventListener('click', addMeme);
   document.getElementById('addStockBtn').addEventListener('click', addStock);
+
+  // Metal API AppCode
+  document.getElementById('saveAppCodeBtn').addEventListener('click', saveAppCode);
+  loadAppCode();
 
   // Export/Import
   document.getElementById('exportBtn').addEventListener('click', exportConfig);
@@ -482,30 +487,135 @@ function startStockPolling() {
 
 // ==================== Metal Polling ====================
 function startMetalPolling() {
+  const appCode = localStorage.getItem(STORAGE_KEYS.METAL_APPCODE) || '';
+
   const fetchData = async () => {
+    // 始终获取国际金价（Binance PAXG）
     try {
-      // Gold from Binance PAXG
       const r = await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=PAXGUSDT');
       if (r.ok) {
         const d = await r.json();
+        const price = parseFloat(d.lastPrice);
+        const change = parseFloat(d.priceChangePercent);
         priceData['XAUUSD'] = {
-          price: parseFloat(d.lastPrice),
-          changePercent: parseFloat(d.priceChangePercent),
-          cnPrice: parseFloat(d.lastPrice) / 31.1035 * 7.1
+          price: price,
+          changePercent: change,
+          cnPrice: price / 31.1035 * 7.1 // 默认换算
         };
-        updateMetalCard('XAUUSD');
       }
     } catch (e) {}
 
-    // Silver placeholder
-    const silverEl = document.getElementById('price-XAGUSD');
-    if (silverEl && !priceData['XAGUSD']) {
-      silverEl.innerHTML = '<span style="font-size:11px;color:rgba(255,255,255,0.5)">点击查看K线</span>';
+    if (appCode) {
+      // 有AppCode，使用阿里云API
+      await fetchMetalFromApi(appCode);
+    } else {
+      // 无AppCode，显示换算价格
+      updateMetalCard('XAUUSD');
+      const silverEl = document.getElementById('price-XAGUSD');
+      if (silverEl) {
+        silverEl.innerHTML = '<span style="font-size:11px;color:rgba(255,255,255,0.5)">配置API获取价格</span>';
+      }
     }
   };
+
   fetchData();
-  pollingIntervals['metal'] = setInterval(fetchData, 60000);
+  pollingIntervals['metal'] = setInterval(fetchData, 120000); // 120秒更新
 }
+
+// 使用阿里云API获取贵金属价格
+async function fetchMetalFromApi(appCode) {
+  // 获取伦敦金银价格（白银）
+  try {
+    const res = await fetch('https://tsgold.market.alicloudapi.com/london', {
+      headers: { 'Authorization': `APPCODE ${appCode}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.code === 1 && data?.data?.list) {
+        // 白银 - 伦敦银
+        const silver = data.data.list.find(item => item.type === '伦敦银');
+        if (silver) {
+          const price = parseFloat(silver.price);
+          const changeStr = silver.changepercent || '0';
+          const change = parseFloat(changeStr.replace('%', '').replace('+', ''));
+          const isNeg = changeStr.includes('-');
+          if (!isNaN(price) && price > 0) {
+            priceData['XAGUSD'] = {
+              price: price,
+              cnPrice: price / 31.1035 * 7.1,
+              changePercent: isNeg ? -Math.abs(change) : change
+            };
+            updateMetalCard('XAGUSD');
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.log('伦敦金银API请求失败:', e.message);
+  }
+
+  // 获取上海黄金期货价格（中国金价）
+  try {
+    const res = await fetch('https://tsgold.market.alicloudapi.com/shgold', {
+      headers: { 'Authorization': `APPCODE ${appCode}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.code === 1 && data?.data?.list && priceData['XAUUSD']) {
+        const gold = data.data.list.find(item => item.type === 'AU99.99' || item.typename === 'AU9999');
+        if (gold) {
+          const cnPrice = parseFloat(gold.price);
+          if (!isNaN(cnPrice) && cnPrice > 0) {
+            priceData['XAUUSD'].cnPrice = cnPrice;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.log('上海黄金API请求失败:', e.message);
+  }
+
+  updateMetalCard('XAUUSD');
+
+  // 白银没数据时显示提示
+  if (!priceData['XAGUSD']) {
+    const silverEl = document.getElementById('price-XAGUSD');
+    if (silverEl) {
+      silverEl.innerHTML = '<span style="font-size:11px;color:rgba(255,255,255,0.5)">点击查看K线</span>';
+    }
+  }
+}
+
+// 保存AppCode
+function saveAppCode() {
+  const input = document.getElementById('metalAppCode');
+  const appCode = input.value.trim();
+  const status = document.getElementById('appCodeStatus');
+
+  if (!appCode) {
+    status.innerHTML = '<span style="color:#f44336;">请输入AppCode</span>';
+    return;
+  }
+
+  localStorage.setItem(STORAGE_KEYS.METAL_APPCODE, appCode);
+  status.innerHTML = '<span style="color:#4CAF50;">✅ 已保存，刷新后生效</span>';
+  showToast('AppCode已保存');
+}
+
+// 加载AppCode
+function loadAppCode() {
+  const appCode = localStorage.getItem(STORAGE_KEYS.METAL_APPCODE) || '';
+  const input = document.getElementById('metalAppCode');
+  const status = document.getElementById('appCodeStatus');
+
+  if (input && appCode) {
+    input.value = appCode;
+    status.innerHTML = '<span style="color:#4CAF50;">✅ 已配置</span>';
+  } else if (status) {
+    status.innerHTML = '<span style="color:#ff9800;">⚠️ 未配置，白银价格将无法显示</span>';
+  }
+}
+
 
 // ==================== UI Updates ====================
 function updateCard(symbol) {
@@ -744,7 +854,8 @@ function exportConfig() {
       alpha: alphaList,
       meme: memeList,
       stock: JSON.parse(localStorage.getItem(STORAGE_KEYS.STOCK) || '[]'),
-      tabVisibility: JSON.parse(localStorage.getItem(STORAGE_KEYS.TAB_VISIBILITY) || '{}')
+      tabVisibility: JSON.parse(localStorage.getItem(STORAGE_KEYS.TAB_VISIBILITY) || '{}'),
+      metalApiAppCode: localStorage.getItem(STORAGE_KEYS.METAL_APPCODE) || ''
     }
   };
 
@@ -801,6 +912,12 @@ function importConfig(e) {
       // 处理页签显示设置
       if (config.data.tabVisibility) {
         localStorage.setItem(STORAGE_KEYS.TAB_VISIBILITY, JSON.stringify(config.data.tabVisibility));
+      }
+
+      // 处理贵金属API AppCode
+      const appCode = config.data.metalApiAppCode || config.data.metalAppCode || '';
+      if (appCode) {
+        localStorage.setItem(STORAGE_KEYS.METAL_APPCODE, appCode);
       }
 
       showToast('导入成功，刷新中...');

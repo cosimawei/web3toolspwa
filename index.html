@@ -148,6 +148,20 @@
             <div class="list-container" id="stockList"></div>
           </div>
 
+          <!-- Metal API -->
+          <div class="settings-section">
+            <h3>🔑 贵金属API配置</h3>
+            <p style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:10px;">
+              配置阿里云贵金属API的AppCode，获取黄金白银实时价格
+              <a href="https://market.aliyun.com/products/57000002/cmapi00062498.html" target="_blank" style="color:#4CAF50;">获取AppCode →</a>
+            </p>
+            <div class="form-row">
+              <input type="password" id="metalAppCode" placeholder="输入AppCode">
+              <button id="saveAppCodeBtn" class="add-btn">保存</button>
+            </div>
+            <div id="appCodeStatus" style="font-size:12px;margin-top:8px;"></div>
+          </div>
+
           <!-- Backup -->
           <div class="settings-section">
             <h3>配置备份</h3>
