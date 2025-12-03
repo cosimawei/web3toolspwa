@@ -93,6 +93,12 @@ function setupEventListeners() {
   document.getElementById('saveAppCodeBtn').addEventListener('click', saveAppCode);
   loadAppCode();
 
+  // Tab visibility save button
+  document.getElementById('saveTabsBtn').addEventListener('click', () => {
+    saveSettings();
+    showToast('页签设置已保存');
+  });
+
   // Export/Import
   document.getElementById('exportBtn').addEventListener('click', exportConfig);
   document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
