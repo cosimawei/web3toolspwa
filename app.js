@@ -691,10 +691,20 @@ function openChart(item, type) {
     const network = item.network || 'bsc';
     const address = item.contractAddress;
     if (address) {
+      // 网络ID映射到DexScreener格式
+      const dexScreenerChain = { bsc: 'bsc', eth: 'ethereum', sol: 'solana', base: 'base' };
+      const chainId = dexScreenerChain[network.toLowerCase()] || network.toLowerCase();
+      const dexScreenerUrl = `https://dexscreener.com/${chainId}/${address}?embed=1&theme=dark&trades=0&info=0`;
+      const dexScreenerPageUrl = `https://dexscreener.com/${chainId}/${address}`;
+      const debotUrl = `https://debot.ai/token/${network}/${address}`;
+
       container.innerHTML = `
-        <div class="debot-link">
-          <p>${type === 'alpha' ? 'Alpha' : 'MEME'}代币K线请在Debot查看</p>
-          <a href="https://debot.ai/token/${network}/${address}" target="_blank">🔗 打开Debot</a>
+        <div style="display:flex;flex-direction:column;height:100%;">
+          <iframe src="${dexScreenerUrl}" style="flex:1;width:100%;border:none;border-radius:8px;"></iframe>
+          <div style="display:flex;justify-content:center;gap:12px;padding:10px 0;">
+            <a href="${dexScreenerPageUrl}" target="_blank" style="padding:8px 16px;background:#00d395;color:#fff;text-decoration:none;border-radius:6px;font-size:13px;">📊 DexScreener</a>
+            <a href="${debotUrl}" target="_blank" style="padding:8px 16px;background:#4CAF50;color:#fff;text-decoration:none;border-radius:6px;font-size:13px;">🔗 Debot</a>
+          </div>
         </div>
       `;
     } else {
