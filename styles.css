@@ -209,6 +209,15 @@ body {
   color: var(--danger);
 }
 
+.coin-card-note {
+  font-size: 10px;
+  color: var(--warning);
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .coin-card-loading {
   color: rgba(255, 255, 255, 0.5);
   font-size: 12px;

@@ -214,20 +214,21 @@ function renderPanel(gridId, list, type) {
       ? `<span class="source-badge">${EXCHANGE_ICONS[item.source] || ''}</span>` : '';
     const marketFlag = type === 'stock' && MARKET_FLAGS[item.source]
       ? `<span class="source-badge">${MARKET_FLAGS[item.source]}</span>` : '';
-    const noteIcon = (type === 'alpha' || type === 'meme') && item.note
-      ? '<span class="note-indicator">📝</span>' : '';
+    const noteText = (type === 'alpha' || type === 'meme') && item.note
+      ? `<div class="coin-card-note">📝 ${item.note}</div>` : '';
 
     return `
       <div class="coin-card" data-symbol="${item.symbol}" data-type="${type}">
         <div class="coin-card-header">
           <span class="coin-card-icon">${item.icon || '🪙'}</span>
           <span class="coin-card-name">${item.name}</span>
-          ${sourceIcon}${marketFlag}${noteIcon}
+          ${sourceIcon}${marketFlag}
         </div>
         <div class="coin-card-price" id="price-${item.symbol}">
           <span class="coin-card-loading">加载中...</span>
         </div>
         <div class="coin-card-change" id="change-${item.symbol}">--</div>
+        ${noteText}
       </div>
     `;
   }).join('');
