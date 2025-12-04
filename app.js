@@ -281,6 +281,7 @@ function renderSettingsLists() {
       <div class="list-item-info">
         <div class="list-item-name">${c.name} <span class="source-badge">${NETWORK_NAMES[c.network] || ''}</span></div>
         <div class="list-item-detail">${c.contractAddress?.slice(0, 10)}...${c.contractAddress?.slice(-6)}</div>
+        ${c.note ? `<div class="list-item-detail" style="color:#ffc107;">📝 ${c.note}</div>` : ''}
       </div>
       <button class="delete-btn" onclick="deleteMeme('${c.symbol}')">删除</button>
     </div>
@@ -777,6 +778,7 @@ function addMeme() {
   const network = document.getElementById('memeNetwork').value;
   const name = document.getElementById('memeName').value.trim();
   const contract = document.getElementById('memeContract').value.trim().toLowerCase();
+  const note = document.getElementById('memeNote').value.trim();
 
   if (!name) return showToast('请输入名称');
   if (!contract) return showToast('请输入合约地址');
@@ -784,13 +786,14 @@ function addMeme() {
   const key = `MEME_${network.toUpperCase()}_${contract.slice(-8).toUpperCase()}`;
   if (memeList.find(c => c.contractAddress === contract)) return showToast('代币已存在');
 
-  memeList.push({ symbol: key, name, icon: '🐸', source: 'meme', network, contractAddress: contract });
+  memeList.push({ symbol: key, name, icon: '🐸', source: 'meme', network, contractAddress: contract, note });
   localStorage.setItem(STORAGE_KEYS.MEME, JSON.stringify(memeList));
   renderAllPanels();
   if (memeList.length === 1) startMemePolling();
 
   document.getElementById('memeName').value = '';
   document.getElementById('memeContract').value = '';
+  document.getElementById('memeNote').value = '';
   showToast('添加成功');
 }
 
