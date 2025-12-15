@@ -788,7 +788,7 @@ function addAlpha() {
 function addMeme() {
   const network = document.getElementById('memeNetwork').value;
   const name = document.getElementById('memeName').value.trim();
-  const contract = document.getElementById('memeContract').value.trim().toLowerCase();
+  const contract = document.getElementById('memeContract').value.trim(); // 保持原始大小写，因为某些链（如Solana）的地址大小写敏感
   const note = document.getElementById('memeNote').value.trim();
 
   if (!name) return showToast('请输入名称');
