@@ -32,7 +32,8 @@ const DEFAULT_STOCKS = [
 
 const DEFAULT_METALS = [
   { symbol: 'XAUUSD', name: '黄金', icon: '🥇', source: 'metal', tradingPair: 'XAUUSD' },
-  { symbol: 'XAGUSD', name: '白银', icon: '🥈', source: 'metal', tradingPair: 'XAGUSD' }
+  { symbol: 'XAGUSD', name: '白银', icon: '🥈', source: 'metal', tradingPair: 'XAGUSD' },
+  { symbol: 'USOIL', name: '原油', icon: '🛢️', source: 'metal', tradingPair: 'USOIL' }
 ];
 
 // ==================== Global State ====================
@@ -522,6 +523,35 @@ function startMetalPolling() {
       }
     } catch (e) {}
 
+    // 获取原油价格（腾讯期货）
+    try {
+      const r = await fetch('https://qt.gtimg.cn/q=hf_CL');
+      if (r.ok) {
+        const buffer = await r.arrayBuffer();
+        const decoder = new TextDecoder('gbk');
+        const text = decoder.decode(buffer);
+        const match = text.match(/="([^"]+)"/);
+        if (match) {
+          const parts = match[1].split(',');
+          if (parts.length > 1) {
+            const price = parseFloat(parts[0]);
+            const change = parseFloat(parts[1]);
+            if (!isNaN(price) && price > 0) {
+              priceData['USOIL'] = {
+                price: price,
+                cnPrice: price * 7.1,
+                changePercent: change,
+                unit: '桶'
+              };
+              updateMetalCard('USOIL');
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.log('原油价格获取失败:', e);
+    }
+
     if (appCode) {
       // 有AppCode，使用阿里云API
       await fetchMetalFromApi(appCode);
@@ -659,9 +689,10 @@ function updateMetalCard(symbol) {
   const changeEl = document.getElementById(`change-${symbol}`);
   if (!priceEl || !changeEl) return;
 
+  const unit = data.unit || '克';
   let html = `$${formatPrice(data.price)}`;
   if (data.cnPrice) {
-    html += `<br><span style="font-size:11px;color:rgba(255,255,255,0.6)">¥${formatPrice(data.cnPrice)}/克</span>`;
+    html += `<br><span style="font-size:11px;color:rgba(255,255,255,0.6)">¥${formatPrice(data.cnPrice)}/${unit}</span>`;
   }
   priceEl.innerHTML = html;
 
@@ -740,7 +771,9 @@ function openChart(item, type) {
       tvSymbol = code;
     }
   } else if (type === 'metal') {
-    tvSymbol = item.symbol === 'XAUUSD' ? 'TVC:GOLD' : 'TVC:SILVER';
+    tvSymbol = 'TVC:GOLD';
+    if (item.symbol === 'XAGUSD') tvSymbol = 'TVC:SILVER';
+    else if (item.symbol === 'USOIL') tvSymbol = 'TVC:USOIL';
   }
 
   container.innerHTML = `<iframe src="https://s.tradingview.com/widgetembed/?frameElementId=tv&symbol=${encodeURIComponent(tvSymbol)}&interval=${interval}&hidesidetoolbar=1&symboledit=1&saveimage=0&toolbarbg=ffffff&theme=dark&style=1&timezone=Asia%2FShanghai&locale=zh_CN"></iframe>`;
