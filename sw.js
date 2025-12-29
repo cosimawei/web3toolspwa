@@ -1,4 +1,4 @@
-const CACHE_NAME = 'asset-tracker-v2';
+const CACHE_NAME = 'asset-tracker-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -14,7 +14,7 @@ self.addEventListener('install', (event) => {
       return cache.addAll(STATIC_ASSETS);
     })
   );
-  self.skipWaiting();
+  self.skipWaiting(); // 立即激活新SW
 });
 
 // Activate event - clean up old caches
@@ -28,10 +28,10 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
-  self.clients.claim();
+  self.clients.claim(); // 立即接管所有页面
 });
 
-// Fetch event - network first, then cache
+// Fetch event - NETWORK FIRST for app files, cache as fallback
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -54,25 +54,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets - cache first, then network
+  // App files - NETWORK FIRST, then cache as fallback
   event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Return cached version and update in background
-        event.waitUntil(
-          fetch(request).then((networkResponse) => {
-            if (networkResponse.ok) {
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(request, networkResponse);
-              });
-            }
-          }).catch(() => {})
-        );
-        return cachedResponse;
-      }
-
-      // Not in cache, fetch from network
-      return fetch(request).then((networkResponse) => {
+    fetch(request)
+      .then((networkResponse) => {
+        // 成功获取网络响应，更新缓存
         if (networkResponse.ok) {
           const responseClone = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -80,7 +66,10 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return networkResponse;
-      });
-    })
+      })
+      .catch(() => {
+        // 网络失败，使用缓存
+        return caches.match(request);
+      })
   );
 });
