@@ -33,7 +33,8 @@ const DEFAULT_STOCKS = [
 const DEFAULT_METALS = [
   { symbol: 'XAUUSD', name: '黄金', icon: '🥇', source: 'metal', tradingPair: 'XAUUSD' },
   { symbol: 'XAGUSD', name: '白银', icon: '🥈', source: 'metal', tradingPair: 'XAGUSD' },
-  { symbol: 'USOIL', name: '原油', icon: '🛢️', source: 'metal', tradingPair: 'USOIL' }
+  { symbol: 'USOIL', name: '原油', icon: '🛢️', source: 'metal', tradingPair: 'USOIL' },
+  { symbol: 'SOYBEAN', name: '大豆', icon: '🫘', source: 'metal', tradingPair: 'SOYBEAN' }
 ];
 
 // ==================== Global State ====================
@@ -552,6 +553,37 @@ function startMetalPolling() {
       console.log('原油价格获取失败:', e);
     }
 
+    // 获取大豆价格（腾讯期货）
+    try {
+      const r = await fetch('https://qt.gtimg.cn/q=hf_S');
+      if (r.ok) {
+        const buffer = await r.arrayBuffer();
+        const decoder = new TextDecoder('gbk');
+        const text = decoder.decode(buffer);
+        const match = text.match(/="([^"]+)"/);
+        if (match) {
+          const parts = match[1].split(',');
+          if (parts.length > 1) {
+            const price = parseFloat(parts[0]);
+            const change = parseFloat(parts[1]);
+            if (!isNaN(price) && price > 0) {
+              // 大豆价格单位是美分/蒲式耳，换算成美元
+              const priceUsd = price / 100;
+              priceData['SOYBEAN'] = {
+                price: priceUsd,
+                cnPrice: priceUsd * 7.1,
+                changePercent: change,
+                unit: '蒲式耳'
+              };
+              updateMetalCard('SOYBEAN');
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.log('大豆价格获取失败:', e);
+    }
+
     if (appCode) {
       // 有AppCode，使用阿里云API
       await fetchMetalFromApi(appCode);
@@ -771,6 +803,16 @@ function openChart(item, type) {
       tvSymbol = code;
     }
   } else if (type === 'metal') {
+    // 大豆期货在嵌入式widget中不支持，需要打开网页查看
+    if (item.symbol === 'SOYBEAN') {
+      container.innerHTML = `
+        <div class="debot-link">
+          <p>大豆期货K线请在TradingView查看</p>
+          <a href="https://www.tradingview.com/chart/?symbol=CBOT:ZS1!" target="_blank">🔗 打开TradingView</a>
+        </div>
+      `;
+      return;
+    }
     tvSymbol = 'TVC:GOLD';
     if (item.symbol === 'XAGUSD') tvSymbol = 'TVC:SILVER';
     else if (item.symbol === 'USOIL') tvSymbol = 'TVC:USOIL';
